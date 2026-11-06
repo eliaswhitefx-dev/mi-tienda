@@ -130,6 +130,7 @@ footer .mk{width:18px;height:18px;margin-bottom:8px;opacity:.7}
 #ct .sec{margin-top:6px;width:100%;border:0;background:transparent;color:var(--muted);font:inherit;padding:8px;cursor:pointer}
 @media(prefers-reduced-motion:reduce){.card{animation:none}}
 @media(max-width:520px){body{font-size:14px}.wrap{padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}header .wrap{padding-top:20px;padding-bottom:16px}header h1{font-size:clamp(24px,7vw,32px)}.tg{font-size:14px}.grid{gap:10px}.card{border-radius:14px}.nm{font-size:14px}.sub{font-size:11.5px}.pr span,.av,.bsl{font-size:11px}.pbig{font-size:18px;margin-top:6px}.ofr b{font-size:17px}.ofr small,.ofr i,.tag,.low,.ofb{font-size:9.5px}.btn,.acts .btn{font-size:12px;padding:8px 6px}.chip{font-size:12px;padding:5px 11px}.pill{font-size:12px;padding:6px 11px}.meta{font-size:11.5px}.nt{font-size:10.5px}}
+.cdg{font-size:10px;letter-spacing:.08em;color:var(--muted);opacity:.65;margin-top:1px;font-variant-numeric:tabular-nums}
 </style>
 </head><body>
 <div class="env" id="env" style="display:none"></div>
@@ -199,14 +200,14 @@ function view(D,q,cat,pub){
   G.sort((a,b)=>(b.v.some(ofOk)?1:0)-(a.v.some(ofOk)?1:0));
   const h=G.map((gr,i)=>{
     const p=gr.v.find(x=>x.id===SEL[gr.k])||gr.v[0];
-    const hasA=asesores(D).length>0,im=PH[p.id]||PH[(gr.v.find(x=>PH[x.id])||{}).id],of=ofOk(p),tz=tasaUse(),g=of?(p.of.g&&p.of.g.length?p.of.g:['Efectivo $']):[],q=CART[p.id]||0;
+    const hasA=asesores(D).length>0,im=PH[p.id]||PH[(gr.v.find(x=>PH[x.id])||{}).id],of=ofOk(p),tz=tasaUse(),g=of?(p.of.g||[]):[],q=CART[p.id]||0;
     return '<article class="card'+(ANIM?'':' na')+'" style="animation-delay:'+Math.min(i,10)*40+'ms"><div class="ph">'+(im?galH(p,im):LILY)
-     +'<span class="tag">'+esc(p.pub||p.cat)+'</span>'+(p.stock<=2?'<span class="low">Quedan '+p.stock+'</span>':'')+(of?'<span class="ofb"><span>🏷️</span>Oferta solo por '+esc(ofNom(g))+'</span>':'')+'</div>'
-     +'<div class="bd"><div class="hd2"><div><div class="nm">'+esc(p.nombre)+'</div><div class="sub">'+(esc(vlab(p))||'&nbsp;')+'</div>'+'</div>'
-     +(of?'<div class="ofr"><small>Oferta '+esc(ofNom(g))+'</small><b>$'+money(p.of.p)+'</b>'+(tz&&g.some(x=>x!=='Efectivo $')?'<i>Bs '+money(p.of.p*tz)+'</i>':'')+'</div>':'')+'</div>'
+     +'<span class="tag">'+esc(p.pub||p.cat)+'</span>'+(p.stock<=2?'<span class="low">Quedan '+p.stock+'</span>':'')+(of?'<span class="ofb"><span>🏷️</span>'+(g.length?'Oferta solo por '+esc(ofNom(g)):'Oferta')+'</span>':'')+'</div>'
+     +'<div class="bd"><div class="hd2"><div><div class="nm">'+esc(p.nombre)+'</div><div class="sub">'+(esc(vlab(p))||'&nbsp;')+'</div>'+(p.cod?'<div class="cdg">Cód. '+esc(p.cod)+'</div>':'')+'</div>'
+     +(of?'<div class="ofr"><small>Oferta'+(g.length?' '+esc(ofNom(g)):'')+'</small><b>$'+money(p.of.p)+'</b>'+(tz&&(!g.length||g.some(x=>x!=='Efectivo $'))?'<i>Bs '+money(p.of.p*tz)+'</i>':'')+'</div>':'')+'</div>'
      +varsHtml(gr,p)
      +'<div class="pbig">$'+money(p.precio)+'</div>'+(tz?'<div class="bsl">Bs '+money(p.precio*tz)+'</div>':'')
-     +(of?'<div class="nt">*'+(p.of.c?esc(p.of.c)+' ':'')+'El precio de oferta ($'+money(p.of.p)+') aplica pagando en '+esc(g.join(' o '))+' y se aplica al finalizar la compra.'+(p.of.h?' Válida hasta el '+fmtF(p.of.h)+'.':'')+'</div>':'')
+     +(of&&(g.length||p.of.c||p.of.h)?'<div class="nt">*'+(p.of.c?esc(p.of.c)+' ':'')+(g.length?'El precio de oferta ($'+money(p.of.p)+') aplica pagando en '+esc(g.join(' o '))+' y se aplica al finalizar la compra.':'')+(p.of.h?' Válida hasta el '+fmtF(p.of.h)+'.':'')+'</div>':'')
      +'<div class="av" style="margin-top:6px">'+(p.stock===1?'1 disponible':p.stock+' disponibles')+(gr.v.length>1?' en esta variante':'')+'</div>'
      +(hasA?'<div class="acts"><button class="btn alt'+(q?' on':'')+'" data-add="'+esc(p.id)+'">'+(q?'✓ En pedido ('+q+')':'Agregar')+'</button><button class="btn" data-ask="'+esc(p.id)+'">'+WAI+'Lo quiero</button></div>':'')+'</div></article>'}).join('');
   return{h,n:G.length};
@@ -237,10 +238,10 @@ function drawCart(){
   cp.innerHTML='Mi pedido ('+C.n+') · $'+money(C.tot);
   document.getElementById('cl').innerHTML=C.L.map(({p,q})=>'<div class="cr">'+(PH[p.id]?'<img src="'+PH[p.id]+'" alt=""/>':'<div class="cph">'+LILY.replace('width:46%','width:60%')+'</div>')
     +'<div class="ci"><b>'+esc(p.nombre)+'</b>'+[p.color&&'Color '+esc(p.color),p.talla&&'Talla '+esc(p.talla),'$'+money(p.precio)].filter(Boolean).join(' · ')
-    +(ofOk(p)?'<em>Oferta $'+money(p.of.p)+' pagando en '+esc(ofNom(p.of.g&&p.of.g.length?p.of.g:['Efectivo $']))+'</em>':'')
+    +(ofOk(p)?'<em>Oferta $'+money(p.of.p)+(p.of.g&&p.of.g.length?' pagando en '+esc(ofNom(p.of.g)):'')+'</em>':'')
     +'<div class="qt"><button data-c="dec" data-id="'+esc(p.id)+'" aria-label="Menos">−</button><b>'+q+'</b><button data-c="inc" data-id="'+esc(p.id)+'" aria-label="Más">+</button><button class="x" data-c="del" data-id="'+esc(p.id)+'">Quitar</button></div></div></div>').join('')||'<p style="color:var(--muted)">Tu pedido está vacío.</p>';
   document.getElementById('ctt').innerHTML='<div class="g"><span>Total</span><span>$'+money(C.tot)+'</span></div>'+(tz?'<div style="color:var(--muted)"><span>Equivale a</span><span>Bs '+money(C.tot*tz)+'</span></div>':'')
-    +(C.hay?'<div class="of"><span>Con ofertas*</span><span>$'+money(C.totOf)+'</span></div><div style="color:var(--muted);font-size:11.5px">*Las ofertas aplican según la forma de pago indicada en cada prenda y se confirman al finalizar la compra.</div>':'');
+    +(C.hay?'<div class="of"><span>Con ofertas*</span><span>$'+money(C.totOf)+'</span></div>'+(C.L.some(({p})=>ofOk(p)&&p.of.g&&p.of.g.length)?'<div style="color:var(--muted);font-size:11.5px">*Las ofertas aplican según la forma de pago indicada en cada prenda y se confirman al finalizar la compra.</div>':''):'');
   document.getElementById('cgo').innerHTML=WAI+'Enviar pedido por WhatsApp';
 }
 function cartAdd(id){const p=(DATA.items||[]).find(x=>x.id===id);if(!p)return;const q=CART[id]||0;if(q>=p.stock){toast('Solo hay '+p.stock+' disponibles');return}CART[id]=q+1;saveCart();draw();toast('Agregado al pedido ✓')}

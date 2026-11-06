@@ -78,7 +78,8 @@ const COMPRA_PAGOS=['Efectivo $','Efectivo Bs','Pago Móvil Bs','Crédito'];
 const compraLab=p=>p==='Crédito'?'Crédito (por pagar)':p;
 const ofActiva=(p,fecha)=>p&&p.of&&n2(p.of.precio)>0&&n2(p.of.precio)<n2(p.precio)&&(!p.of.hasta||p.of.hasta>=(fecha||today()))?p.of:null;
 const OFPG=['Efectivo $','Efectivo Bs','Pago Móvil Bs'];
-const ofPagos=o=>(o&&o.pg&&o.pg.length)?o.pg:['Efectivo $'];
+const ofPagos=o=>(o&&o.pg&&o.pg.length)?o.pg:OFPG;
+const ofEsp=o=>!!(o&&o.pg&&o.pg.length&&o.pg.length<OFPG.length);
 const descEfU=(s,p,pago,fecha)=>{const o=ofActiva(p,fecha);return o&&ofPagos(o).includes(pago)?n2(p.precio)-n2(o.precio):0};
 const ventaCalc=(s,p,pago,cant,montoUsd,fecha)=>{const pr=p?p.precio:0,d=descEfU(s,p,pago,fecha),lista=cant*pr,aplic=cant*(pr-d),usd=montoUsd==null?aplic:montoUsd;return{lista,aplic,usd,dEf:lista-aplic,reb:Math.max(0,aplic-usd)}};
 
@@ -90,6 +91,7 @@ const norm=d=>{
   if(!d.banco)d.banco=[];
   if(!d.cfg)d.cfg={descEf:3,tipoEf:'$'};
   if(d.cfg.tienda===undefined)d.cfg.tienda='Lirios Store';
+  if(d.cfg.envios===undefined)d.cfg.envios='🛵 Entrega a domicilio en la ciudad';
   if(d.cfg.eslogan===undefined){const L=d.cfg.tienda==='Lirios Store';d.cfg.eslogan=L?'Vestidos con la gracia y la belleza del campo':'';d.cfg.bienvenida='';d.cfg.destacado=L?'Considerad los lirios del campo, cómo crecen: no trabajan ni hilan; pero os digo, que ni aun Salomón con toda su gloria se vistió así como uno de ellos.':'';d.cfg.destRef=L?'Mateo 6:28-29':''}
   if(!d.cfg.asesores)d.cfg.asesores=d.cfg.wa?[{n:'Ventas',t:String(d.cfg.wa)}]:[];
   ['movs','egresos','abonos','ventas','productos','apartados','invs','perdidas'].forEach(k=>{if(!d[k])d[k]=[]});
@@ -190,7 +192,7 @@ function Ventas({s,up}){
 </div>`}
       ${p?html`<div class="text-sm mt-2 flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 p-2"><button type="button" class="shrink-0" title="Toca para ampliar" onClick=${()=>FOTOS[p.id]&&setZoom(FOTOS[p.id])}><${FotoBox} src=${FOTOS[p.id]} cls="w-20 h-20"/></button><div class="min-w-0"><span class="text-xs text-slate-500">Vas a vender:</span><br/><b>${lab(p)}</b> · ${p.stock} disp. · precio ${USD(p.precio)}${dU>0&&html` · <b class="text-pink-600">OFERTA ${USD(p.precio-dU)}</b>${p.of.cond?html` <span class="text-xs text-slate-500">(${p.of.cond})</span>`:''}`}
         <${VarPicker} mem=${gsz(p)} pid=${p.id} onPick=${id=>setF({...f,pid:id,mUsd:'',mBs:''})}/>
-        ${ofActiva(p,f.fecha)&&dU<=0&&html`<div class="text-xs text-amber-600 mt-1">Esta prenda tiene oferta (${USD(p.of.precio)}) que aplica solo pagando en ${ofPagos(p.of).join(' o ')}. Con ${f.pago} se cobra el precio normal.${f.pago==='Crédito'?' Si luego abona en esa forma de pago, la oferta se aplica al abonar.':''}</div>`}</div></div>`:html`<div class="text-xs text-amber-600 mt-2">Escribe arriba para buscar y elegir el producto.</div>`}
+        ${ofActiva(p,f.fecha)&&dU<=0&&ofEsp(p.of)&&html`<div class="text-xs text-amber-600 mt-1">Esta prenda tiene oferta (${USD(p.of.precio)}) que aplica solo pagando en ${ofPagos(p.of).join(' o ')}. Con ${f.pago} se cobra el precio normal.${f.pago==='Crédito'?' Si luego abona en esa forma de pago, la oferta se aplica al abonar.':''}</div>`}</div></div>`:html`<div class="text-xs text-amber-600 mt-2">Escribe arriba para buscar y elegir el producto.</div>`}
       <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
         <${F} l="Fecha"><input type="date" class=${inp} value=${f.fecha} onChange=${set('fecha')}/><//>
         <${F} l="Cantidad (unidades)"><input type="number" min="1" step="1" class=${inp} value=${f.cant} onChange=${set('cant')}/><//>
@@ -218,7 +220,8 @@ function Ventas({s,up}){
 const tallaOrd=x=>{const i=['XXS','XS','S','M','L','XL','XXL','XXXL'].indexOf(String(x||'').trim().toUpperCase());return i<0?100:i};
 const cmpTalla=(a,b)=>tallaOrd(a)-tallaOrd(b)||String(a||'').localeCompare(String(b||''),'es',{numeric:true});
 function NuevoProd({s,up,onClose}){
-  const [d,setD]=useState({nombre:'',cat:TIPOS[0]||'Ropa',costo:'',precio:'',fecha:today(),pago:'Efectivo $',pub:PUBS.includes('Unisex')?'Unisex':(PUBS[0]||''),sub:'',vars:[{color:'',talla:'',stock:''}]}),[err,setErr]=useState(''),[ft,setFt]=useState(undefined);
+  const [d,setD]=useState({nombre:'',cat:TIPOS[0]||'Ropa',costo:'',precio:'',fecha:today(),pago:'Efectivo $',pub:PUBS.includes('Unisex')?'Unisex':(PUBS[0]||''),sub:'',vars:[{color:'',talla:'',stock:''}]}),[err,setErr]=useState(''),[ft,setFt]=useState((window.__COMP||[])[0]),[ex,setEx]=useState((window.__COMP||[]).slice(1,6));
+  useEffect(()=>{window.__COMP=null},[]);
   const set=k=>e=>setD({...d,[k]:e.target.value});
   const setV=(i,k,v)=>setD({...d,vars:d.vars.map((r,j)=>j===i?{...r,[k]:v}:r)});
   const bsM=d.pago==='Efectivo Bs'||d.pago==='Pago Móvil Bs',tzc=tasaDe(s,d.fecha).t;
@@ -236,10 +239,11 @@ function NuevoProd({s,up,onClose}){
       x.productos.unshift({id:r.id,pub:d.pub,sub,vis:true,foto:!!ft,...(gid?{gid}:{}),nombre:d.nombre.trim(),cat:d.cat,talla:r.talla,color:r.color,stock:r.st,costo:cs,precio:n2(d.precio)});
       if(r.st>0){const usd=r.st*cs;x.movs.unshift({id:uid(),fecha:d.fecha,pid:r.id,nombre:labP(d.nombre.trim(),r.color,r.talla),tipo:'Entrada',cant:r.st,costo:cs,usd,pago:d.pago,bs:bsM?usd*tasaDe(x,d.fecha).t:null,pagada:false,nota:'Producto nuevo'})}})});
     if(ft&&fbDb&&CUID)plan.forEach(r=>guardarFoto(r.id,ft).catch(()=>{}));
+    if(ex.length&&fbDb&&CUID)guardarExtras(gid||plan[0].id,ex).catch(()=>{});
     onClose()};
   return html`<div class=${card}><h2 class="font-semibold mb-3">Nuevo producto</h2>
     <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-      <${FotoPick} cur=${undefined} ft=${ft} setFt=${v=>setFt(v||undefined)} setErr=${setErr}/>
+      <${FotoPick} cur=${undefined} ft=${ft} setFt=${v=>{setFt(v||undefined);if(!v)setEx([])}} setErr=${setErr} ex=${ex} setEx=${async a=>setEx(a.slice(0,5))}/>
       <${F} l="Nombre"><input class=${inp} value=${d.nombre} onChange=${set('nombre')} placeholder="Ej: Blusa blanca"/><//>
       <${F} l="Categoría"><select class=${inp} value=${d.cat} onChange=${set('cat')}>${TIPOS.map(x=>html`<option key=${x}>${x}</option>`)}</select><//>
       <${F} l="Para (catálogo)"><select class=${inp} value=${d.pub} onChange=${set('pub')}>${PUBS.map(x=>html`<option key=${x}>${x}</option>`)}</select><//>
@@ -259,7 +263,7 @@ function NuevoProd({s,up,onClose}){
 }
 
 function Prod({p,up,reb,ms,ap,nv,sib=[],ed}){
-  const mkD=()=>({sv:Object.fromEntries(sib.map(y=>[y.id,{color:y.color||'',talla:y.talla||'',stock:y.stock}])),sub:p.sub||'',ofOn:!!(p.of&&p.of.precio),ofPrecio:(p.of&&p.of.precio)||'',ofCond:(p.of&&p.of.cond)||'',ofHasta:(p.of&&p.of.hasta)||'',ofPg:ofPagos(p.of),pub:p.pub||'Unisex',vis:p.vis!==false,nombre:p.nombre,cat:p.cat,talla:p.talla||'',color:p.color||'',stock:p.stock,costo:p.costo,precio:p.precio,fecha:(ms&&ms[0]&&ms[0].fecha)||today(),pago:(ms&&ms[0]&&ms[0].pago)||'Efectivo $'});
+  const mkD=()=>({sv:Object.fromEntries(sib.map(y=>[y.id,{color:y.color||'',talla:y.talla||'',stock:y.stock}])),sub:p.sub||'',ofOn:!!(p.of&&p.of.precio),ofPrecio:(p.of&&p.of.precio)||'',ofCond:(p.of&&p.of.cond)||'',ofHasta:(p.of&&p.of.hasta)||'',ofPg:(p.of&&p.of.pg)||[],pub:p.pub||'Unisex',vis:p.vis!==false,nombre:p.nombre,cat:p.cat,talla:p.talla||'',color:p.color||'',stock:p.stock,costo:p.costo,precio:p.precio,fecha:(ms&&ms[0]&&ms[0].fecha)||today(),pago:(ms&&ms[0]&&ms[0].pago)||'Efectivo $'});
   const [m,setM]=useState(ed?'edit':null),[q,setQ]=useState(''),[c,setC]=useState(''),[nt,setNt]=useState(''),[fc,setFc]=useState(today()),[pg,setPg]=useState('Efectivo $'),[d,setD]=useState(ed?mkD():{}),[cd,setCd]=useState(false),[err,setErr]=useState(''),[ft,setFt]=useState(undefined),[vr,setVr]=useState({color:'',talla:'',stock:''});
   const close=()=>{setVr({color:'',talla:'',stock:''});setFt(undefined);setM(null);setQ('');setC('');setNt('');setErr('');setFc(today());setPg('Efectivo $')};
   const ok=()=>{const n=Math.floor(n2(q));if(n<=0)return setErr('Indica la cantidad.');
@@ -290,7 +294,7 @@ function Prod({p,up,reb,ms,ap,nv,sib=[],ed}){
   const saveE=()=>{
     if(sib.length){const ks=[[d.color,d.talla],...sib.map(y=>{const v=(d.sv||{})[y.id]||{};return[v.color,v.talla]})].map(a=>normH(a[0])+'|'+normH(a[1]));if(new Set(ks).size<ks.length)return setErr('Hay dos variantes con el mismo color y talla.')}
     up(x=>{const z=x.productos.find(y=>y.id===p.id);if(!z)return;
-    z.of=d.ofOn&&n2(d.ofPrecio)>0?{precio:n2(d.ofPrecio),cond:String(d.ofCond||'').trim(),hasta:d.ofHasta||'',pg:(d.ofPg&&d.ofPg.length)?d.ofPg:['Efectivo $']}:null;
+    z.of=d.ofOn&&n2(d.ofPrecio)>0?{precio:n2(d.ofPrecio),cond:String(d.ofCond||'').trim(),hasta:d.ofHasta||'',pg:(d.ofPg&&d.ofPg.length&&d.ofPg.length<OFPG.length)?d.ofPg:[]}:null;
     Object.assign(z,{pub:d.pub,sub:resSub(d.sub,d.nombre.trim()||z.nombre),vis:!!d.vis,nombre:d.nombre.trim()||z.nombre,cat:d.cat,talla:d.talla.trim(),color:d.color.trim(),precio:n2(d.precio)});
     const ns=Math.max(0,Math.floor(n2(d.stock))),df=ns-z.stock,EX=x.movs.filter(y=>y.pid===z.id&&y.tipo==='Entrada');
     if(EX.length>1){if(df!==0){z.stock=ns;x.movs.unshift({id:uid(),fecha:today(),pid:z.id,nombre:lab(z),tipo:df>0?'Entrada':'Salida',cant:Math.abs(df),costo:z.costo,usd:df>0?0:undefined,pago:df>0?'Efectivo $':undefined,nota:'Ajuste de stock'})}}
@@ -330,7 +334,7 @@ function Prod({p,up,reb,ms,ap,nv,sib=[],ed}){
       ${n2(vr.stock)>0&&html`<div class="grid grid-cols-2 gap-2"><${F} l="Fecha de la compra"><input type="date" class=${inp} value=${fc} onChange=${e=>setFc(e.target.value)}/><//><${F} l="Cómo se pagó"><select class=${inp} value=${pg} onChange=${e=>setPg(e.target.value)}>${COMPRA_PAGOS.map(x=>html`<option key=${x} value=${x}>${compraLab(x)}</option>`)}</select><//></div>`}
       <${Msg} t=${err}/><div class="flex gap-2"><button class=${btn} onClick=${addVar}>Agregar variante</button><button class=${btn2} onClick=${close}>Cancelar</button></div></div>`}
     ${m==='edit'&&html`<div class="mt-2 grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
-      <${FotoPick} cur=${FOTOS[p.id]} ft=${ft} setFt=${setFt} setErr=${setErr}/>
+      <${FotoPick} cur=${FOTOS[p.id]} ft=${ft} setFt=${setFt} setErr=${setErr} setEx=${a=>guardarExtras(p.gid||p.id,a)}/>
       <${FotosExtra} k=${p.gid||p.id}/>
       <${F} l="Nombre"><input class=${inp} value=${d.nombre} onChange=${e=>setD({...d,nombre:e.target.value})}/><//>
       <${F} l="Categoría"><select class=${inp} value=${d.cat} onChange=${e=>setD({...d,cat:e.target.value})}>${TIPOS.map(x=>html`<option key=${x}>${x}</option>`)}</select><//>
@@ -343,7 +347,7 @@ function Prod({p,up,reb,ms,ap,nv,sib=[],ed}){
       <${F} l="Unidades en stock"><input type="number" step="1" min="0" class=${inp} value=${d.stock} onChange=${e=>setD({...d,stock:e.target.value})}/><//>`}
       <div class="col-span-2 rounded-lg border border-pink-200 dark:border-pink-900 p-3 space-y-2"><label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked=${d.ofOn} onChange=${e=>setD({...d,ofOn:e.target.checked})}/> Mostrar como oferta en el catálogo</label>
         ${d.ofOn&&html`<div class="grid grid-cols-2 gap-2"><${F} l="Precio de oferta ($)"><input type="number" min="0" step="any" class=${inp} value=${d.ofPrecio} onChange=${e=>setD({...d,ofPrecio:e.target.value})}/><//><${F} l="Válida hasta (opcional)"><div class="flex gap-2"><input type="date" class=${inp} value=${d.ofHasta} onChange=${e=>setD({...d,ofHasta:e.target.value})}/>${d.ofHasta&&html`<button type="button" class=${btn2} onClick=${()=>setD({...d,ofHasta:''})}>Sin fecha</button>`}</div><p class="text-[11px] text-slate-500 mt-1">${d.ofHasta?'Vence el '+d.ofHasta.split('-').reverse().join('/')+'.':'Sin fecha: la oferta no vence.'}</p><//>
-          <div class="col-span-2 text-sm"><div class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">La oferta se aplica cuando el cliente paga en:</div><div class="flex flex-wrap gap-3">${OFPG.map(y=>html`<label key=${y} class="flex items-center gap-1"><input type="checkbox" checked=${(d.ofPg||[]).includes(y)} onChange=${e=>setD({...d,ofPg:e.target.checked?[...(d.ofPg||[]),y]:(d.ofPg||[]).filter(z=>z!==y)})}/> ${y}</label>`)}</div><p class="text-xs text-slate-500 mt-1">Si la venta es a crédito, la oferta se aplica cuando el cliente abone en una de estas formas de pago.</p></div>
+          <div class="col-span-2 text-sm"><div class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">La oferta se aplica cuando el cliente paga en: <span class="font-normal">(opcional)</span></div><div class="flex flex-wrap gap-3">${OFPG.map(y=>html`<label key=${y} class="flex items-center gap-1"><input type="checkbox" checked=${(d.ofPg||[]).includes(y)} onChange=${e=>setD({...d,ofPg:e.target.checked?[...(d.ofPg||[]),y]:(d.ofPg||[]).filter(z=>z!==y)})}/> ${y}</label>`)}</div><p class="text-xs text-slate-500 mt-1">Si no marcas ninguna, la oferta vale con cualquier forma de pago y el catálogo no muestra aviso. Si marcas alguna, solo vale con esas y el catálogo lo avisa.</p></div>
           <div class="col-span-2"><${F} l="Condiciones de la oferta"><input class=${inp} value=${d.ofCond} onChange=${e=>setD({...d,ofCond:e.target.value})} placeholder="Ej: Llevando 2 o más. Hasta agotar existencias."/><//></div>
           </div>`}</div>
       <label class="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked=${d.vis} onChange=${e=>setD({...d,vis:e.target.checked})}/> Mostrar en el catálogo</label>
@@ -426,7 +430,7 @@ const VarPicker=({mem,pid,onPick})=>{
     ${cols.length>1&&html`<div><div class="text-xs text-slate-500 mb-1">Color</div><div class="flex flex-wrap gap-2">${cols.map(c=>chip(c===(cur.color||''),c,()=>pickC(c),c))}</div></div>`}
     ${(tl.length>1||tl.some(x=>x.talla))&&html`<div><div class="text-xs text-slate-500 mb-1">Talla · unidades disponibles</div><div class="flex flex-wrap gap-2">${tl.map(x=>chip(x.id===cur.id,(x.talla||'Única')+' ('+x.stock+')',()=>onPick(x.id),x.id))}</div></div>`}</div>`};
 function Inventario({s,up,k}){
-  const [nw,setNw]=useState(false),[cm,setCm]=useState(false),[q,setQ]=useState(''),[cat,setCat]=useState('Todas'),[vista,setVista]=useState('stock'),[hf,setHf]=useState('todo'),[hn,setHn]=useState(60);
+  const [nw,setNw]=useState(!!(window.__COMP&&window.__COMP.length)),[cm,setCm]=useState(false),[q,setQ]=useState(''),[cat,setCat]=useState('Todas'),[vista,setVista]=useState('stock'),[hf,setHf]=useState('todo'),[hn,setHn]=useState(60);
   const words=normH(q).split(/\s+/).filter(Boolean);
   const nAg=s.productos.filter(p=>p.stock<=0).length;
   const L=vista==='hist'?[]:s.productos.filter(p=>(vista==='todo'||(vista==='stock'?p.stock>0:p.stock<=0))&&(cat==='Todas'||p.cat===cat)&&words.every(w=>normH(lab(p)+' '+codDe(p)+' '+p.cat+' '+(p.sub||'')).includes(w)));
@@ -918,8 +922,9 @@ const fotoRef=pid=>fbDb.doc('catalogos/'+CUID+'/fotos/'+pid);
 const guardarFoto=(pid,d)=>fotoRef(pid).set({d,updated:Date.now()});
 const quitarFoto=pid=>fotoRef(pid).delete();
 const FotoBox=({src,cls='w-16 h-16'})=>src?html`<img src=${src} class=${cls+' object-cover rounded-lg shrink-0'} alt=""/>`:html`<div class=${cls+' rounded-lg shrink-0 bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-2xl'}>👕</div>`;
-const FotoPick=({cur,ft,setFt,err,setErr})=>{const shown=ft===undefined?cur:ft;
-  return html`<div class="col-span-2 flex items-center gap-3"><${FotoBox} src=${shown} cls="w-20 h-20"/><div class="space-y-1 text-sm"><label class=${btn2+' cursor-pointer inline-block'}>📷 ${shown?'Cambiar foto':'Agregar foto'}<input type="file" accept="image/*" class="hidden" onChange=${async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{setFt(await compress(f))}catch(x){setErr&&setErr('No se pudo leer esa imagen.')}}}/></label>${shown&&html`<button class="block text-xs text-rose-600 underline" onClick=${()=>setFt(null)}>Quitar foto</button>`}</div></div>`};
+const guardarExtras=async(k,arr)=>{const free=[1,2,3,4,5].map(i=>k+'~'+i).filter(x=>!FOTOS[x]);for(const d of arr.slice(0,free.length))await guardarFoto(free.shift(),d)};
+const FotoPick=({cur,ft,setFt,err,setErr,ex,setEx})=>{const shown=ft===undefined?cur:ft;
+  return html`<div class="col-span-2 flex items-center gap-3"><${FotoBox} src=${shown} cls="w-20 h-20"/><div class="space-y-1 text-sm"><label class=${btn2+' cursor-pointer inline-block'}>📷 ${shown?'Cambiar / agregar fotos':'Agregar fotos'}<input type="file" accept="image/*" multiple class="hidden" onChange=${async e=>{const fs=Array.from(e.target.files||[]);e.target.value='';if(!fs.length)return;try{const ds=[];for(const f of fs.slice(0,6))ds.push(await compress(f));setFt(ds[0]);if(ds.length>1&&setEx)await setEx(ds.slice(1))}catch(x){setErr&&setErr('No se pudo leer esa imagen.')}}}/></label>${ex&&ex.length?html`<div class="text-xs text-slate-500">+${ex.length} foto(s) más para deslizar en el catálogo</div>`:''}${shown&&html`<button class="block text-xs text-rose-600 underline" onClick=${()=>setFt(null)}>Quitar foto</button>`}</div></div>`};
 const FotosExtra=({k})=>{const [bz,setBz]=useState(false),[er,setEr]=useState('');
   const sl=[1,2,3,4,5].map(i=>k+'~'+i),has=sl.filter(x=>FOTOS[x]);
   const add=async fs=>{setBz(true);setEr('');try{const free=sl.filter(x=>!FOTOS[x]);for(const f of Array.from(fs).slice(0,free.length)){const d=await compress(f);await guardarFoto(free.shift(),d)}}catch(e){setEr('No se pudo guardar. Revisa tu conexión.')}setBz(false)};
@@ -1105,7 +1110,7 @@ function useCloud(s,setS,user){
 }
 
 /* ---- ¿Está guardada la app para usar sin internet? (se autorepara) ---- */
-const OFFLINE_CACHE='tienda-v8';
+const OFFLINE_CACHE='tienda-v9';
 const OFFLINE_NEED=['https://cdn.tailwindcss.com','https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js','https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js','https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.js','https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js','https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js','https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js'];
 async function chequeoOffline(reparar){
   if(!('serviceWorker' in navigator)||!window.caches)return{ok:false,msg:'Este navegador no puede guardar la app para usarla sin internet.'};
@@ -1284,7 +1289,7 @@ function PerfilTienda({s,up}){
     <div class="space-y-2"><div class="text-sm font-medium">Redes sociales</div>
       ${redes.map((r,i)=>html`<div key=${i} class="grid grid-cols-[7rem_1fr_auto] gap-2"><input class=${inp} value=${r.n} placeholder="Instagram" onChange=${e=>up(x=>{x.cfg.redes[i].n=e.target.value})}/><input class=${inp} value=${r.u} placeholder="Enlace o @usuario" onChange=${e=>up(x=>{x.cfg.redes[i].u=e.target.value})}/><button class=${btn2} onClick=${()=>up(x=>{x.cfg.redes.splice(i,1)})}>✕</button></div>`)}
       <button class=${btn2} onClick=${()=>up(x=>{x.cfg.redes=x.cfg.redes||[];x.cfg.redes.push({n:'',u:''})})}>+ Agregar red social</button></div>
-    <${F} l="Aviso de envíos (se ve arriba del catálogo)"><input class=${inp} value=${c.envios||''} onChange=${set('envios')} placeholder="Hacemos envíos a todo el país"/><//>
+    <${F} l="Entrega a domicilio / envíos (se ve arriba del catálogo)"><input placeholder="Ej: 🛵 Entrega a domicilio en la ciudad" class=${inp} value=${c.envios||''} onChange=${set('envios')} placeholder="Hacemos envíos a todo el país"/><//>
     <${F} l="Frase de invitación sobre «Conócenos» (opcional)"><input class=${inp} value=${c.invita||''} onChange=${set('invita')} placeholder="Detrás de cada prenda hay una historia"/><//>
     <${F} l="Presentación y bienvenida (botón «Conócenos»)"><textarea rows="5" class=${inp} value=${c.pres||''} onChange=${set('pres')} placeholder="Cuéntales quiénes son, qué ofrecen y da la bienvenida a tus clientes."></textarea><//>
     <${Msg} t=${er}/></div>`}
@@ -1307,6 +1312,7 @@ function Catalogo({s,up}){
   const [cp,setCp]=useState(''),[pv,setPv]=useState(false);
   const link=location.origin+location.pathname.replace(/[^/]*$/,'')+'catalogo.html?t='+CUID;
   const vis=s.productos.filter(p=>p.stock>0&&p.vis!==false).length,ag=s.productos.filter(p=>p.stock<=0).length,oc=s.productos.filter(p=>p.stock>0&&p.vis===false).length;
+  const abrirFuera=e=>{try{const st=matchMedia('(display-mode: standalone)').matches||navigator.standalone;if(st&&/Android/i.test(navigator.userAgent)){e.preventDefault();const u=new URL(link);location.href='intent://'+u.host+u.pathname+u.search+'#Intent;scheme='+u.protocol.replace(':','')+';package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(link)+';end'}}catch(x){}};
   const copiar=async()=>{try{await navigator.clipboard.writeText(link);setCp('✓ Enlace copiado')}catch(e){setCp('Copia el enlace manualmente')}setTimeout(()=>setCp(''),3000)};
   return html`<div class="space-y-4"><div class=${card}><h2 class="font-semibold">Catálogo para tus clientes</h2>
     <p class="text-xs text-slate-500 mt-1">Una página pública, sin iniciar sesión, que se actualiza sola: lo que vendes sale del catálogo y lo que agregas al inventario aparece. Solo muestra nombre, categoría, talla, color, precio y unidades. Nunca muestra tus costos.</p>
@@ -1330,7 +1336,7 @@ function Catalogo({s,up}){
     <${Visitas}/>
     ${CATERR&&html`<div class="rounded-lg bg-rose-50 text-rose-700 text-xs p-3 break-words">⚠️ No se pudo publicar el catálogo: ${CATERR}</div>`}<div class=${card+' space-y-2'}><div class="text-sm font-medium">Enlace de tu catálogo</div><p class="text-xs text-slate-500">Este enlace es único de la cuenta con la que entraste (${user_email()}). Otra cuenta tiene otro enlace distinto.</p>
       <input readonly class=${inp} value=${link} onFocus=${e=>e.target.select()}/>
-      <div class="flex flex-wrap gap-2 items-center"><button class=${btn} onClick=${copiar}>📋 Copiar enlace</button><button class=${btn2} onClick=${()=>setPv(!pv)}>${pv?'Ocultar vista previa':'👁️ Vista previa aquí'}</button><a class=${btn2} href=${link} target="_blank" rel="noopener">Abrir en otra pestaña</a><a class=${btn2} target="_blank" rel="noopener" href=${'https://wa.me/?text='+encodeURIComponent('Mira mi catálogo: '+link)}>Compartir por WhatsApp</a><span class="text-sm text-slate-500">${cp}</span></div>
+      <div class="flex flex-wrap gap-2 items-center"><button class=${btn} onClick=${copiar}>📋 Copiar enlace</button><button class=${btn2} onClick=${()=>setPv(!pv)}>${pv?'Ocultar vista previa':'👁️ Vista previa aquí'}</button><a class=${btn2} href=${link} target="_blank" rel="noopener" onClick=${abrirFuera}>Abrir en otra pestaña</a><a class=${btn2} target="_blank" rel="noopener" href=${'https://wa.me/?text='+encodeURIComponent('Mira mi catálogo: '+link)}>Compartir por WhatsApp</a><span class="text-sm text-slate-500">${cp}</span></div>
       ${pv&&html`<iframe src=${link} title="Vista previa" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white" style=${{height:'520px'}}></iframe>`}
       <p class="text-xs text-slate-500">Para ocultar un producto: Inventario → Editar → desmarca "Mostrar en el catálogo". Para clasificar (Dama, Caballero, Niños, Unisex), usa el mismo Editar.</p></div></div>`;
 }
@@ -1373,7 +1379,7 @@ function App(){
   CUID=user?user.uid:'';CMAIL=user?user.email:'';
   const catRef=React.useRef('');
   useEffect(()=>{if(!user||user.offline||!fbDb||!cloud.loaded||cloud.st.pend||cloud.st.off||cloud.st.msg==='error'||cloud.st.msg==='saving')return;
-    const doc={tienda:s.cfg.tienda||'',eslogan:s.cfg.eslogan||'',bienvenida:s.cfg.bienvenida||'',destacado:s.cfg.destacado||'',destRef:s.cfg.destRef||'',asesores:(s.cfg.asesores||[]).filter(a=>String(a.t||'').length>=7).map(a=>({n:String(a.n||'').trim()||'Ventas',t:String(a.t)})),cats:TIPOS,pubs:PUBS,envios:s.cfg.envios||'',invita:s.cfg.invita||'',pais:s.cfg.pais||'',estado:s.cfg.estado||'',ciudad:s.cfg.ciudad||'',dir:s.cfg.dir||'',maps:s.cfg.maps||'',redes:(s.cfg.redes||[]).filter(r=>r&&String(r.u||'').trim()).map(r=>({n:String(r.n||'').trim(),u:String(r.u).trim()})),pres:s.cfg.pres||'',logo:s.cfg.logo||'',tasa:n2(s.tasa),autoT:!!s.cfg.autoT,fuenteT:s.cfg.fuenteT||'oficial',items:s.productos.filter(p=>p.stock>0&&p.vis!==false).map(p=>({id:String(p.id),nombre:p.nombre||'',cat:p.cat||'',pub:p.pub||'',sub:p.sub||'',talla:p.talla||'',color:p.color||'',g:p.gid||'',cod:codDe(p),precio:n2(p.precio),stock:n2(p.stock),of:(p.of&&n2(p.of.precio)>0&&n2(p.of.precio)<n2(p.precio)&&(!p.of.hasta||p.of.hasta>=today()))?{p:n2(p.of.precio),c:p.of.cond||'',h:p.of.hasta||'',g:ofPagos(p.of)}:null}))};
+    const doc={tienda:s.cfg.tienda||'',eslogan:s.cfg.eslogan||'',bienvenida:s.cfg.bienvenida||'',destacado:s.cfg.destacado||'',destRef:s.cfg.destRef||'',asesores:(s.cfg.asesores||[]).filter(a=>String(a.t||'').length>=7).map(a=>({n:String(a.n||'').trim()||'Ventas',t:String(a.t)})),cats:TIPOS,pubs:PUBS,envios:s.cfg.envios||'',invita:s.cfg.invita||'',pais:s.cfg.pais||'',estado:s.cfg.estado||'',ciudad:s.cfg.ciudad||'',dir:s.cfg.dir||'',maps:s.cfg.maps||'',redes:(s.cfg.redes||[]).filter(r=>r&&String(r.u||'').trim()).map(r=>({n:String(r.n||'').trim(),u:String(r.u).trim()})),pres:s.cfg.pres||'',logo:s.cfg.logo||'',tasa:n2(s.tasa),autoT:!!s.cfg.autoT,fuenteT:s.cfg.fuenteT||'oficial',items:s.productos.filter(p=>p.stock>0&&p.vis!==false).map(p=>({id:String(p.id),nombre:p.nombre||'',cat:p.cat||'',pub:p.pub||'',sub:p.sub||'',talla:p.talla||'',color:p.color||'',g:p.gid||'',cod:codDe(p),precio:n2(p.precio),stock:n2(p.stock),of:(p.of&&n2(p.of.precio)>0&&n2(p.of.precio)<n2(p.precio)&&(!p.of.hasta||p.of.hasta>=today()))?{p:n2(p.of.precio),c:p.of.cond||'',h:p.of.hasta||'',g:ofEsp(p.of)?p.of.pg:[]}:null}))};
     const j=JSON.stringify(doc);if(j===catRef.current)return;
     const tm=setTimeout(()=>{try{fbDb.doc('catalogos/'+user.uid).set({...JSON.parse(j),updated:Date.now()}).then(()=>{catRef.current=j;if(CATERR){CATERR='';bump(x=>x+1)}}).catch(e=>{CATERR=((e&&e.code)||'error')+': '+((e&&e.message)||e);bump(x=>x+1)})}catch(e){CATERR=String((e&&e.message)||e);bump(x=>x+1)}},1200);
     return()=>clearTimeout(tm)},[s,user&&user.uid,cloud.loaded,cloud.st.pend,cloud.st.off,cloud.st.msg]);
@@ -1388,6 +1394,7 @@ function App(){
   useEffect(()=>{if(!user||!cloud.loaded||!s.cfg.autoT||s.cfg.lastAuto===today())return;let dead=false;
     traerTasa(s.cfg.fuenteT||'oficial').then(r=>{if(!dead)up(c=>{c.tasa=r.v;upT(c,today(),r.v);c.cfg.lastAuto=today()})}).catch(()=>{});
     return()=>{dead=true}},[user&&user.uid,cloud.loaded,s.cfg.autoT,s.cfg.lastAuto]);
+  useEffect(()=>{if(!user||!cloud.loaded||!/[?&]compartido=1/.test(location.search))return;let dead=false;(async()=>{try{const ch=await caches.open('compartido'),ks=await ch.keys(),ds=[];for(const k of ks){const r=await ch.match(k);if(r&&ds.length<6)ds.push(await compress(await r.blob()));await ch.delete(k)}if(dead)return;history.replaceState(null,'',location.pathname);if(ds.length){window.__COMP=ds;setTab(2)}}catch(e){}})();return()=>{dead=true}},[user&&user.uid,cloud.loaded]);
   if(fbErr)return html`<div class="p-6 text-sm text-rose-600">No se pudo cargar Firebase. Revisa tu conexión a internet y recarga. (${fbErr})</div>`;
   if(user===undefined)return html`<div class="min-h-screen flex flex-col items-center justify-center gap-2 text-slate-500 text-center px-6"><div>Cargando…</div>${slow&&html`<p class="text-xs max-w-xs">Está tardando. Si no tienes internet, abre la app con conexión al menos una vez en este teléfono e inicia sesión; después podrás usarla sin conexión.</p>`}</div>`;
   if(!user)return html`<${Login}/>`;
