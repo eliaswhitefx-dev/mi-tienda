@@ -1349,7 +1349,7 @@ function Login(){
     <${F} l="Correo"><input type="email" autocomplete="email" class=${inp} value=${em} onChange=${e=>setEm(e.target.value)}/><//>
     <${F} l="Contraseña (mínimo 6 caracteres)"><input type="password" autocomplete="current-password" class=${inp} value=${pw} onChange=${e=>setPw(e.target.value)} onKeyDown=${e=>{if(e.key==='Enter')run('in')}}/><//>
     <${Msg} t=${msg&&msg.t} ok=${msg&&msg.ok}/>
-    <button class=${btn+' w-full'} disabled=${bz} onClick=${()=>run('in')}>${bz?'Un momento…':'Entrar'}</button>
+    <button class=${btn.replace('bg-indigo-600 hover:bg-indigo-700','bg-teal-700 hover:bg-teal-800')+' w-full'} disabled=${bz} onClick=${()=>run('in')}>${bz?'Un momento…':'Entrar'}</button>
     <button class=${btn2+' w-full'} disabled=${bz} onClick=${()=>run('up')}>Crear cuenta nueva</button>
     <button class="text-xs underline text-slate-500 w-full" onClick=${()=>run('reset')}>Olvidé mi contraseña</button>
   </div></div>`;
