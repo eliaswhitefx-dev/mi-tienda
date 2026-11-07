@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.mi_tienda_4ith.twa",
+        "sha256_cert_fingerprints": ["FF:0E:D2:99:80:31:30:4C:34:F4:16:20:BA:75:48:5D:1B:71:43:2B:AE:1A:D1:DB:F7:31:A6:C0:00:1F:0E:1E"]
+      }
+    }]
