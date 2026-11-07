@@ -45,7 +45,7 @@ const BS=x=>'Bs '+n2(x).toLocaleString('es-VE',{minimumFractionDigits:2,maximumF
 const sum=(a,k)=>a.reduce((t,x)=>t+n2(x[k]),0);
 const PAGOS=['Efectivo $','Efectivo Bs','Pago Móvil Bs','Crédito'];
 const CATS=['Alquiler','Comida','Casa','Gasto Personal','Transporte','Gustos','Otros'];
-const DEF_TIPOS=['Ropa','Accesorios'],DEF_PUBS=['Dama','Caballero','Niños','Unisex'];
+const DEF_TIPOS=['Ropa','Accesorios'],DEF_PUBS=['Dama','Caballero','Niños','Niñas','Unisex'];
 let TIPOS=DEF_TIPOS,PUBS=DEF_PUBS;
 const KEY='erp-ropa-v2';
 let SUBS=[];
@@ -91,6 +91,7 @@ const norm=d=>{
   if(!d.banco)d.banco=[];
   if(!d.cfg)d.cfg={descEf:3,tipoEf:'$'};
   if(d.cfg.tienda===undefined)d.cfg.tienda='Lirios Store';
+  if(d.cfg.pubs&&d.cfg.pubs.length&&!d.cfg.pubsN){d.cfg.pubsN=1;if(d.cfg.pubs.includes('Niños')&&!d.cfg.pubs.includes('Niñas'))d.cfg.pubs.splice(d.cfg.pubs.indexOf('Niños')+1,0,'Niñas')}
   if(d.cfg.envios===undefined)d.cfg.envios='🛵 Entrega a domicilio en la ciudad';
   if(d.cfg.eslogan===undefined){const L=d.cfg.tienda==='Lirios Store';d.cfg.eslogan=L?'Vestidos con la gracia y la belleza del campo':'';d.cfg.bienvenida='';d.cfg.destacado=L?'Considerad los lirios del campo, cómo crecen: no trabajan ni hilan; pero os digo, que ni aun Salomón con toda su gloria se vistió así como uno de ellos.':'';d.cfg.destRef=L?'Mateo 6:28-29':''}
   if(!d.cfg.asesores)d.cfg.asesores=d.cfg.wa?[{n:'Ventas',t:String(d.cfg.wa)}]:[];
@@ -1319,7 +1320,7 @@ function Catalogo({s,up}){
     <div class="grid grid-cols-3 gap-2 mt-3 text-center text-sm"><div><div class="text-lg font-semibold text-emerald-600">${vis}</div>visibles</div><div><div class="text-lg font-semibold text-slate-500">${ag}</div>agotados</div><div><div class="text-lg font-semibold text-amber-600">${oc}</div>ocultos</div></div></div>
     <div class=${card+' space-y-4'}>
       <${ListaCfg} titulo="Categorías de la tienda" ayuda="Las grandes secciones de tu catálogo (por ejemplo Ropa y Accesorios). El número es cuántas prendas tiene cada una." k="cats" def=${DEF_TIPOS} campo="cat" s=${s} up=${up}/>
-      <${ListaCfg} titulo="¿Para quién?" ayuda="Dama, Caballero, Niños… Dentro de cada una el cliente verá los tipos de prenda (Blusas, Pantalones, Shorts…) que se crean solos según el nombre." k="pubs" def=${DEF_PUBS} campo="pub" s=${s} up=${up}/>
+      <${ListaCfg} titulo="¿Para quién?" ayuda="Dama, Caballero, Niños, Niñas… Dentro de cada una el cliente verá los tipos de prenda (Blusas, Pantalones, Shorts…) que se crean solos según el nombre." k="pubs" def=${DEF_PUBS} campo="pub" s=${s} up=${up}/>
       ${sinSub>0&&html`<div class="rounded-xl bg-indigo-50 dark:bg-slate-900 p-3 text-sm flex flex-wrap items-center gap-2"><span>${sinSub} prenda(s) sin tipo pueden agruparse según su nombre.</span><button class=${btn2} onClick=${agrupar}>Agrupar ahora</button></div>`}${agm&&html`<div class="text-xs text-emerald-600">${agm}</div>`}
     </div>
     <${PerfilTienda} s=${s} up=${up}/>

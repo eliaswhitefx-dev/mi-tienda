@@ -252,7 +252,7 @@ function pedidoMsg(){
   const L=C.L.map(({p,q})=>'• '+p.nombre+[p.color,p.talla&&'Talla '+p.talla].filter(Boolean).map(x=>' · '+x).join('')+(q>1?' ('+q+' unidades)':''));
   return 'Hola, buenas 😊 '+(nm?'Soy '+nm+', q':'Q')+'uiero información de las siguientes prendas:\n\n'+L.join('\n')+'\n\nMuchas gracias, ¡feliz día! 😊'}
 function chips(D){
-  const pubs=['Todos',...((D.pubs&&D.pubs.length?D.pubs:['Dama','Caballero','Niños','Unisex'])).filter(x=>(D.items||[]).some(p=>p.stock>0&&p.pub===x))];
+  const pubs=['Todos',...((D.pubs&&D.pubs.length?D.pubs:['Dama','Caballero','Niños','Niñas','Unisex'])).filter(x=>(D.items||[]).some(p=>p.stock>0&&p.pub===x))];
   const cats=['Todo',...((D.cats&&D.cats.length?D.cats:['Ropa','Accesorios'])).filter(x=>(D.items||[]).some(p=>p.stock>0&&p.cat===x))];
   const b=(v,cur,k)=>'<button class="chip" aria-pressed="'+(v===cur)+'" data-k="'+k+'" data-v="'+esc(v)+'">'+esc(v)+'</button>';
   return (cats.length>2?cats.map(v=>b(v,fCat,'c')).join('')+(pubs.length>1?'<span class="sep"></span>':''):'')+(pubs.length>1?pubs.map(v=>b(v,fPub,'p')).join(''):'');
