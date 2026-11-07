@@ -1,1 +1,54 @@
-{"name": "Cuadre Total", "short_name": "Cuadre Total", "start_url": "./", "scope": "./", "display": "standalone", "background_color": "#ecfdf5", "theme_color": "#0f766e", "lang": "es", "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}], "id": "./", "share_target": {"action": "./compartir", "method": "POST", "enctype": "multipart/form-data", "params": {"files": [{"name": "fotos", "accept": ["image/*"]}]}}}
+{
+ "name": "Cuadre Total",
+ "short_name": "Cuadre Total",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#ecfdf5",
+ "theme_color": "#0f766e",
+ "lang": "es",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ],
+ "id": "./",
+ "share_target": {
+  "action": "./compartir",
+  "method": "POST",
+  "enctype": "multipart/form-data",
+  "params": {
+   "files": [
+    {
+     "name": "fotos",
+     "accept": [
+      "image/*"
+     ]
+    }
+   ]
+  }
+ },
+ "description": "Control de inventario, ventas y catálogo digital para tu tienda, en Bs y $.",
+ "categories": [
+  "business",
+  "shopping",
+  "productivity"
+ ],
+ "orientation": "portrait",
+ "dir": "ltr"
+}
