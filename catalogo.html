@@ -138,6 +138,7 @@ footer .mk{width:18px;height:18px;margin-bottom:8px;opacity:.7}
 <header><div class="wrap"><img id="lgi" class="lgi" alt="" style="display:none"/><svg class="mk" id="mk0" viewBox="-50 -50 100 100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linejoin="round"><path d="M0-6C-10-22-8-40 0-46C8-40 10-22 0-6Z"/><path d="M0-6C-10-22-8-40 0-46C8-40 10-22 0-6Z" transform="rotate(60)"/><path d="M0-6C-10-22-8-40 0-46C8-40 10-22 0-6Z" transform="rotate(120)"/><path d="M0-6C-10-22-8-40 0-46C8-40 10-22 0-6Z" transform="rotate(180)"/><path d="M0-6C-10-22-8-40 0-46C8-40 10-22 0-6Z" transform="rotate(240)"/><path d="M0-6C-10-22-8-40 0-46C8-40 10-22 0-6Z" transform="rotate(300)"/></svg><h1 id="tt" class="script">Catálogo</h1>
 <p class="tg" id="tg" style="display:none"></p>
 <div class="ha" id="ha" style="display:none"></div>
+<div class="ha" id="av" style="display:none"><button class="pill" id="avb" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Avisarme de novedades y ofertas</button><p id="avn" style="margin:8px 0 0;font-size:12px;color:var(--muted)"></p></div>
 <div class="verse" id="vs" style="display:none"><q id="vq"></q><cite id="vc"></cite></div></div></header>
 <div class="bar wrap"><label class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Buscar prenda o accesorio…" autocomplete="off"/></label><div id="f" class="chips"></div><div id="f2" class="chips" style="padding-top:0;display:none"></div></div>
 <main class="wrap"><div class="meta"><span id="cnt"></span><span id="tasa"></span></div><div id="st" style="color:var(--muted);font-size:14px">Cargando catálogo…</div><div id="g" class="grid"></div>
@@ -322,6 +323,28 @@ function wire(){
   document.getElementById('f2').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;fSub=b.dataset.v;ANIM=true;draw()});
   document.getElementById('f').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.k==='c'){fCat=b.dataset.v;fSub='Todos'}else if(b.dataset.k==='p'){fPub=b.dataset.v;fSub='Todos'}else fSub=b.dataset.v;ANIM=true;draw()});
 }
+
+function avisosInit(t){
+  if(!window.VAPID_PUBLIC)return;
+  const box=document.getElementById('av'),b=document.getElementById('avb'),nt=document.getElementById('avn');
+  const ios=/iPad|iPhone|iPod/.test(navigator.userAgent),stand=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+  const ok='serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+  if(!ok){if(ios&&!stand){box.style.display='';b.style.display='none';nt.textContent='Para recibir avisos en iPhone: toca Compartir → «Añadir a pantalla de inicio» y abre el catálogo desde ahí.'}return}
+  if(Notification.permission==='denied')return;
+  const k='aviso-'+t;let on=false;try{on=localStorage.getItem(k)==='1'&&Notification.permission==='granted'}catch(e){}
+  const BELL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';const paint=()=>{b.innerHTML=BELL+(on?'Avisos activados':'Avisarme de novedades y ofertas');b.disabled=on};
+  const u8=s=>{const p='='.repeat((4-s.length%4)%4),r=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(r,c=>c.charCodeAt(0))};
+  const hash=async s=>{const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,40)};
+  box.style.display='';paint();
+  b.onclick=async()=>{b.disabled=true;b.textContent='Activando…';nt.textContent='';
+    try{const p=await Notification.requestPermission();if(p!=='granted'){nt.textContent='No se activaron los avisos. Puedes permitirlos desde los ajustes del navegador.';on=false;paint();return}
+      await navigator.serviceWorker.register('sw.js');const reg=await navigator.serviceWorker.ready;
+      const sub=(await reg.pushManager.getSubscription())||(await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(window.VAPID_PUBLIC)}));
+      await firebase.firestore().doc('avisos/'+t+'/subs/'+await hash(sub.endpoint)).set({s:JSON.stringify(sub),t:Date.now()});
+      on=true;try{localStorage.setItem(k,'1')}catch(e){}nt.textContent='¡Listo! Te avisaremos cuando llegue mercancía nueva u ofertas.'}
+    catch(e){on=false;nt.textContent='No se pudo activar. Intenta de nuevo en un momento.'}
+    paint()}
+}
 if(typeof document!=='undefined'&&typeof firebase!=='undefined'){
   const t=new URLSearchParams(location.search).get('t'),st=document.getElementById('st');
   if(!t)st.textContent='Este enlace del catálogo no es válido.';
@@ -339,6 +362,6 @@ if(typeof document!=='undefined'&&typeof firebase!=='undefined'){
     try{const dia=new Date(Date.now()-4*36e5).toISOString().slice(0,10),k='visita-'+t;
       let ya=null;try{ya=localStorage.getItem(k)}catch(e){}
       if(ya!==dia){firebase.firestore().doc('catalogos/'+t+'/visitas/'+dia).set({d:dia,n:firebase.firestore.FieldValue.increment(1)},{merge:true}).then(()=>{try{localStorage.setItem(k,dia)}catch(e){}}).catch(()=>{})}}catch(e){}
-    wire()}
+    wire();try{avisosInit(t)}catch(e){}}
 }
 </script></body></html>

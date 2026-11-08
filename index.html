@@ -1319,6 +1319,27 @@ function ListaCfg({titulo,ayuda,k,def,campo,s,up}){
     <div class="flex flex-wrap gap-2">${L.map(n=>ed===n?html`<span key=${n} class="flex items-center gap-1"><input class=${inp+' !w-32 !py-1'} value=${txt} onChange=${e=>setTxt(e.target.value)} onKeyDown=${e=>{if(e.key==='Enter')ren(n)}}/><button class=${btn2+' !py-1'} onClick=${()=>ren(n)}>OK</button></span>`:html`<span key=${n} class="inline-flex items-center gap-1 rounded-full border border-slate-200 dark:border-slate-600 pl-3 pr-1 py-1 text-sm">${n}<span class="text-xs text-slate-400">${uso(n)}</span><button class="px-1 text-slate-400 hover:text-slate-700" title="Cambiar nombre" onClick=${()=>{setEd(n);setTxt(n);setErr('')}}>✏️</button><button class="px-1 text-slate-400 hover:text-rose-600" title="Quitar" onClick=${()=>quitar(n)}>✕</button></span>`)}</div>
     <div class="flex gap-2 mt-2"><input class=${inp+' !w-44'} value=${nv} onChange=${e=>setNv(e.target.value)} placeholder="Nueva…" onKeyDown=${e=>{if(e.key==='Enter')add()}}/><button class=${btn2} onClick=${add}>+ Agregar</button></div>
     <${Msg} t=${err}/></div>`}
+function Avisos({s}){
+  const PRE={nuevo:['Nueva mercancía','Ya llegaron prendas nuevas. Míralas en el catálogo.'],oferta:['Oferta especial','Precios especiales por tiempo limitado. Míralos en el catálogo.']};
+  const [n,setN]=useState(null),[ti,setTi]=useState(PRE.nuevo[0]),[tx,setTx]=useState(PRE.nuevo[1]),[bz,setBz]=useState(false),[msg,setMsg]=useState('');
+  const link=location.origin+location.pathname.replace(/[^/]*$/,'')+'catalogo.html?t='+CUID;
+  useEffect(()=>{if(!fbDb||!CUID)return;return fbDb.collection('avisos/'+CUID+'/subs').onSnapshot(sn=>setN(sn.size),()=>setN(null))},[CUID]);
+  const enviar=async()=>{if(!ti.trim())return setMsg('Escribe un título.');if(!fbAuth||!fbAuth.currentUser)return setMsg('Inicia sesión para enviar avisos.');
+    setBz(true);setMsg('');
+    try{const tk=await fbAuth.currentUser.getIdToken(),r=await fetch(location.origin+'/api/enviar',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify({titulo:ti.trim(),texto:tx.trim(),url:link})});
+      let j={};try{j=await r.json()}catch(e){}
+      if(r.status===404)setMsg('Los avisos aún no están instalados en Vercel (falta la carpeta api). Revisa la guía.');
+      else if(!r.ok)setMsg((j&&j.error)||'No se pudo enviar. Intenta de nuevo.');
+      else setMsg('✓ Aviso enviado a '+j.enviados+' cliente(s)'+(j.fallidos?' · '+j.fallidos+' no se pudieron entregar':''))}
+    catch(e){setMsg('No se pudo enviar. Revisa tu conexión.')}
+    setBz(false)};
+  return html`<div class=${card+' space-y-3'}><div><h2 class="font-semibold">Avisos a tus clientes</h2><p class="text-xs text-slate-500 mt-1">Los clientes que pulsaron «Avisarme» en tu catálogo reciben una notificación en su teléfono, aunque no tengan el catálogo abierto. ${n===null?'':html`<b>${n}</b> cliente(s) suscritos.`}</p></div>
+    <div class="flex flex-wrap gap-2"><button class=${btn2} onClick=${()=>{setTi(PRE.nuevo[0]);setTx(PRE.nuevo[1])}}>Mercancía nueva</button><button class=${btn2} onClick=${()=>{setTi(PRE.oferta[0]);setTx(PRE.oferta[1])}}>Oferta</button></div>
+    <${F} l="Título"><input class=${inp} value=${ti} maxLength="60" onChange=${e=>setTi(e.target.value)}/><//>
+    <${F} l="Mensaje"><textarea rows="2" class=${inp} maxLength="140" value=${tx} onChange=${e=>setTx(e.target.value)}></textarea><//>
+    <button class=${btn} disabled=${bz} onClick=${enviar}>${bz?'Enviando…':'Enviar aviso ahora'}</button>
+    <${Msg} t=${msg} ok=${msg.startsWith('✓')}/></div>`;
+}
 function Catalogo({s,up}){
   const [agm,setAgm]=useState('');
   const sinSub=s.productos.filter(p=>!p.sub&&autoSub(p.nombre)).length;
@@ -1347,6 +1368,7 @@ function Catalogo({s,up}){
         <button class=${btn2} onClick=${()=>up(c=>{c.cfg.asesores=c.cfg.asesores||[];c.cfg.asesores.push({n:'',t:''})})}>+ Agregar asesora</button>
         <p class="text-xs text-slate-500">Si agregas varias, el cliente elige con quién hablar. Con una sola, el botón abre su chat directo.</p></div>
     </div>
+    <${Avisos} s=${s}/>
     <${Visitas}/>
     ${CATERR&&html`<div class="rounded-lg bg-rose-50 text-rose-700 text-xs p-3 break-words">⚠️ No se pudo publicar el catálogo: ${CATERR}</div>`}<div class=${card+' space-y-2'}><div class="text-sm font-medium">Enlace de tu catálogo</div><p class="text-xs text-slate-500">Este enlace es único de la cuenta con la que entraste (${user_email()}). Otra cuenta tiene otro enlace distinto.</p>
       <input readonly class=${inp} value=${link} onFocus=${e=>e.target.select()}/>
