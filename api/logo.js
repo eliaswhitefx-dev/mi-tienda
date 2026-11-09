@@ -11,7 +11,7 @@ module.exports = async (req, res) => {
     if (!m) return volver();
     res.statusCode = 200;
     res.setHeader('Content-Type', m[1]);
-    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800');
     res.end(Buffer.from(m[2], 'base64'));
   } catch (e) { volver(); }
 };
