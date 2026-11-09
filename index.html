@@ -1321,12 +1321,12 @@ function ListaCfg({titulo,ayuda,k,def,campo,s,up}){
     <${Msg} t=${err}/></div>`}
 function Avisos({s}){
   const PRE={nuevo:['Nueva mercancía','Ya llegaron prendas nuevas. Míralas en el catálogo.'],oferta:['Oferta especial','Precios especiales por tiempo limitado. Míralos en el catálogo.'],libre:['','']};
-  const [n,setN]=useState(null),[ti,setTi]=useState(PRE.nuevo[0]),[tx,setTx]=useState(PRE.nuevo[1]),[bz,setBz]=useState(false),[msg,setMsg]=useState('');
+  const [n,setN]=useState(null),[lk,setLk]=useState(''),[ti,setTi]=useState(PRE.nuevo[0]),[tx,setTx]=useState(PRE.nuevo[1]),[bz,setBz]=useState(false),[msg,setMsg]=useState('');
   const link=location.origin+location.pathname.replace(/[^/]*$/,'')+'catalogo.html?t='+CUID;
   useEffect(()=>{if(!fbDb||!CUID)return;return fbDb.collection('avisos/'+CUID+'/subs').onSnapshot(sn=>setN(sn.size),()=>setN(null))},[CUID]);
   const enviar=async()=>{if(!ti.trim())return setMsg('Escribe un título.');if(!tx.trim()&&!ti.trim())return setMsg('Escribe el mensaje.');if(!fbAuth||!fbAuth.currentUser)return setMsg('Inicia sesión para enviar avisos.');
     setBz(true);setMsg('');
-    try{const tk=await fbAuth.currentUser.getIdToken(),r=await fetch(location.origin+'/api/enviar',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify({titulo:ti.trim(),texto:tx.trim(),url:link,tienda:s.cfg.tienda||''})});
+    try{const tk=await fbAuth.currentUser.getIdToken(),r=await fetch(location.origin+'/api/enviar',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify({titulo:ti.trim(),texto:tx.trim(),url:(()=>{let u=lk.trim();if(!u)return link;if(!/^https?:\/\//i.test(u))u='https://'+u;return u})(),tienda:s.cfg.tienda||''})});
       let j={};try{j=await r.json()}catch(e){}
       if(r.status===404)setMsg('Los avisos aún no están instalados en Vercel (falta la carpeta api). Revisa la guía.');
       else if(!r.ok)setMsg((j&&j.error)||'No se pudo enviar. Intenta de nuevo.');
@@ -1338,6 +1338,7 @@ function Avisos({s}){
     <div class="flex flex-wrap gap-2"><button class=${btn2} onClick=${()=>{setTi(PRE.nuevo[0]);setTx(PRE.nuevo[1])}}>Mercancía nueva</button><button class=${btn2} onClick=${()=>{setTi(PRE.oferta[0]);setTx(PRE.oferta[1])}}>Oferta</button><button class=${btn2} onClick=${()=>{setTi(PRE.libre[0]);setTx(PRE.libre[1])}}>Mensaje libre</button></div>
     <${F} l="Título (el nombre de tu tienda sale siempre antes)"><input placeholder="Ej: Versículo del día, Aviso importante…" class=${inp} value=${ti} maxLength="60" onChange=${e=>setTi(e.target.value)}/><//>
     <${F} l="Mensaje"><textarea rows="3" placeholder="Escribe aquí lo que quieras: un anuncio, un versículo, una promo…" class=${inp} maxLength="140" value=${tx} onChange=${e=>setTx(e.target.value)}></textarea><//>
+    <${F} l="Enlace al tocar el aviso (opcional)"><input placeholder="Ej: https://instagram.com/p/… (si lo dejas vacío, abre tu catálogo)" class=${inp} value=${lk} onChange=${e=>setLk(e.target.value)}/><//>
     <button class=${btn} disabled=${bz} onClick=${enviar}>${bz?'Enviando…':'Enviar aviso ahora'}</button>
     <${Msg} t=${msg} ok=${msg.startsWith('✓')}/></div>`;
 }
