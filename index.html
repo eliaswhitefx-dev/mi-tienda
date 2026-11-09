@@ -1320,23 +1320,24 @@ function ListaCfg({titulo,ayuda,k,def,campo,s,up}){
     <div class="flex gap-2 mt-2"><input class=${inp+' !w-44'} value=${nv} onChange=${e=>setNv(e.target.value)} placeholder="Nueva…" onKeyDown=${e=>{if(e.key==='Enter')add()}}/><button class=${btn2} onClick=${add}>+ Agregar</button></div>
     <${Msg} t=${err}/></div>`}
 function Avisos({s}){
-  const PRE={nuevo:['Nueva mercancía','Ya llegaron prendas nuevas. Míralas en el catálogo.'],oferta:['Oferta especial','Precios especiales por tiempo limitado. Míralos en el catálogo.']};
+  const PRE={nuevo:['Nueva mercancía','Ya llegaron prendas nuevas. Míralas en el catálogo.'],oferta:['Oferta especial','Precios especiales por tiempo limitado. Míralos en el catálogo.'],libre:['','']};
   const [n,setN]=useState(null),[ti,setTi]=useState(PRE.nuevo[0]),[tx,setTx]=useState(PRE.nuevo[1]),[bz,setBz]=useState(false),[msg,setMsg]=useState('');
   const link=location.origin+location.pathname.replace(/[^/]*$/,'')+'catalogo.html?t='+CUID;
   useEffect(()=>{if(!fbDb||!CUID)return;return fbDb.collection('avisos/'+CUID+'/subs').onSnapshot(sn=>setN(sn.size),()=>setN(null))},[CUID]);
-  const enviar=async()=>{if(!ti.trim())return setMsg('Escribe un título.');if(!fbAuth||!fbAuth.currentUser)return setMsg('Inicia sesión para enviar avisos.');
+  const enviar=async()=>{if(!ti.trim())return setMsg('Escribe un título.');if(!tx.trim()&&!ti.trim())return setMsg('Escribe el mensaje.');if(!fbAuth||!fbAuth.currentUser)return setMsg('Inicia sesión para enviar avisos.');
     setBz(true);setMsg('');
-    try{const tk=await fbAuth.currentUser.getIdToken(),r=await fetch(location.origin+'/api/enviar',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify({titulo:ti.trim(),texto:tx.trim(),url:link})});
+    try{const tk=await fbAuth.currentUser.getIdToken(),r=await fetch(location.origin+'/api/enviar',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify({titulo:ti.trim(),texto:tx.trim(),url:link,tienda:s.cfg.tienda||''})});
       let j={};try{j=await r.json()}catch(e){}
       if(r.status===404)setMsg('Los avisos aún no están instalados en Vercel (falta la carpeta api). Revisa la guía.');
       else if(!r.ok)setMsg((j&&j.error)||'No se pudo enviar. Intenta de nuevo.');
       else setMsg('✓ Aviso enviado a '+j.enviados+' cliente(s)'+(j.fallidos?' · '+j.fallidos+' no se pudieron entregar':''))}
     catch(e){setMsg('No se pudo enviar. Revisa tu conexión.')}
     setBz(false)};
-  return html`<div class=${card+' space-y-3'}><div><h2 class="font-semibold">Avisos a tus clientes</h2><p class="text-xs text-slate-500 mt-1">Los clientes que pulsaron «Avisarme» en tu catálogo reciben una notificación en su teléfono, aunque no tengan el catálogo abierto. ${n===null?'':html`<b>${n}</b> cliente(s) suscritos.`}</p></div>
-    <div class="flex flex-wrap gap-2"><button class=${btn2} onClick=${()=>{setTi(PRE.nuevo[0]);setTx(PRE.nuevo[1])}}>Mercancía nueva</button><button class=${btn2} onClick=${()=>{setTi(PRE.oferta[0]);setTx(PRE.oferta[1])}}>Oferta</button></div>
-    <${F} l="Título"><input class=${inp} value=${ti} maxLength="60" onChange=${e=>setTi(e.target.value)}/><//>
-    <${F} l="Mensaje"><textarea rows="2" class=${inp} maxLength="140" value=${tx} onChange=${e=>setTx(e.target.value)}></textarea><//>
+  return html`<div class=${card+' space-y-3'}><div><h2 class="font-semibold">Avisos a tus clientes</h2><p class="text-xs text-slate-500 mt-1">Los clientes que aceptan los avisos en tu catálogo reciben una notificación en su teléfono, aunque no tengan el catálogo abierto.</p></div>
+    <div class="rounded-xl bg-indigo-50 dark:bg-slate-900 p-3 flex items-center gap-3"><div class="text-3xl font-semibold text-indigo-600">${n===null?'–':n}</div><div class="text-sm leading-tight">personas con avisos activados<div class="text-xs text-slate-500">Es el alcance real de tus notificaciones</div></div></div>
+    <div class="flex flex-wrap gap-2"><button class=${btn2} onClick=${()=>{setTi(PRE.nuevo[0]);setTx(PRE.nuevo[1])}}>Mercancía nueva</button><button class=${btn2} onClick=${()=>{setTi(PRE.oferta[0]);setTx(PRE.oferta[1])}}>Oferta</button><button class=${btn2} onClick=${()=>{setTi(PRE.libre[0]);setTx(PRE.libre[1])}}>Mensaje libre</button></div>
+    <${F} l="Título (el nombre de tu tienda sale siempre antes)"><input placeholder="Ej: Versículo del día, Aviso importante…" class=${inp} value=${ti} maxLength="60" onChange=${e=>setTi(e.target.value)}/><//>
+    <${F} l="Mensaje"><textarea rows="3" placeholder="Escribe aquí lo que quieras: un anuncio, un versículo, una promo…" class=${inp} maxLength="140" value=${tx} onChange=${e=>setTx(e.target.value)}></textarea><//>
     <button class=${btn} disabled=${bz} onClick=${enviar}>${bz?'Enviando…':'Enviar aviso ahora'}</button>
     <${Msg} t=${msg} ok=${msg.startsWith('✓')}/></div>`;
 }

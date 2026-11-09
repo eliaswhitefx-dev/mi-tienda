@@ -41,6 +41,14 @@ header h1{margin:0;font-size:clamp(30px,8vw,46px);line-height:1.1;font-weight:50
 @media(prefers-reduced-motion:reduce){.pill.pulse{animation:none}}
 .lgi{width:68px;height:68px;object-fit:contain;margin:0 auto 10px;display:block;border-radius:50%}
 .ha{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:16px auto 0}
+.avs{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:0 12px max(12px,env(safe-area-inset-bottom,0px));transform:translateY(120%);transition:transform .4s ease;pointer-events:none}
+.avs.on{transform:none}
+.avc{pointer-events:auto;max-width:460px;margin:0 auto;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:14px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px}
+.avt{width:38px;height:38px;border-radius:50%;background:var(--blush);color:var(--acc);display:flex;align-items:center;justify-content:center;grid-row:1}
+.avx{display:flex;flex-direction:column;font-size:13px;color:var(--muted);line-height:1.4}.avx b{color:var(--fg);font-size:14px;font-weight:600}
+.avb{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.avy{background:var(--acc);color:#fff;border:0;border-radius:999px;font:inherit;font-size:13px;font-weight:600;padding:8px 16px;cursor:pointer}
+.avn{background:transparent;color:var(--muted);border:0;font:inherit;font-size:13px;padding:8px 10px;cursor:pointer}
 .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:transparent;color:var(--fg);font:inherit;font-size:13px;font-weight:500;padding:7px 14px;border-radius:999px;text-decoration:none;cursor:pointer;transition:background .15s}
 .pill:hover{background:var(--blush)}.nota{display:flex;flex-direction:column;gap:3px;margin:0 0 12px;padding:12px 14px;border-radius:14px;background:var(--blush);border:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--muted)}
 .nota b{font-family:"Playfair Display",Georgia,serif;font-weight:500;font-size:15px;color:var(--fg)}
@@ -332,18 +340,34 @@ function avisosInit(t){
   if(!ok){if(ios&&!stand){box.style.display='';b.style.display='none';nt.textContent='Para recibir avisos en iPhone: toca Compartir → «Añadir a pantalla de inicio» y abre el catálogo desde ahí.'}return}
   if(Notification.permission==='denied')return;
   const k='aviso-'+t;let on=false;try{on=localStorage.getItem(k)==='1'&&Notification.permission==='granted'}catch(e){}
-  const BELL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';const paint=()=>{b.innerHTML=BELL+(on?'Avisos activados':'Avisarme de novedades y ofertas');b.disabled=on};
+  const BELL='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+  const paint=()=>{b.innerHTML=BELL+(on?'Avisos activados':'Avisarme de novedades y ofertas');b.disabled=on};
   const u8=s=>{const p='='.repeat((4-s.length%4)%4),r=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(r,c=>c.charCodeAt(0))};
   const hash=async s=>{const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,40)};
+  const suscribir=async()=>{await navigator.serviceWorker.register('sw.js');const reg=await navigator.serviceWorker.ready;
+    const sub=(await reg.pushManager.getSubscription())||(await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(window.VAPID_PUBLIC)}));
+    await firebase.firestore().doc('avisos/'+t+'/subs/'+await hash(sub.endpoint)).set({s:JSON.stringify(sub),t:Date.now()});
+    on=true;try{localStorage.setItem(k,'1')}catch(e){}};
+  const activar=async()=>{const p=await Notification.requestPermission();if(p!=='granted')return false;await suscribir();return true};
   box.style.display='';paint();
   b.onclick=async()=>{b.disabled=true;b.textContent='Activando…';nt.textContent='';
-    try{const p=await Notification.requestPermission();if(p!=='granted'){nt.textContent='No se activaron los avisos. Puedes permitirlos desde los ajustes del navegador.';on=false;paint();return}
-      await navigator.serviceWorker.register('sw.js');const reg=await navigator.serviceWorker.ready;
-      const sub=(await reg.pushManager.getSubscription())||(await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(window.VAPID_PUBLIC)}));
-      await firebase.firestore().doc('avisos/'+t+'/subs/'+await hash(sub.endpoint)).set({s:JSON.stringify(sub),t:Date.now()});
-      on=true;try{localStorage.setItem(k,'1')}catch(e){}nt.textContent='¡Listo! Te avisaremos cuando llegue mercancía nueva u ofertas.'}
+    try{if(await activar())nt.textContent='¡Listo! Te avisaremos cuando llegue mercancía nueva u ofertas.';else{on=false;nt.textContent='No se activaron los avisos. Puedes permitirlos desde los ajustes del navegador.'}}
     catch(e){on=false;nt.textContent='No se pudo activar. Intenta de nuevo en un momento.'}
-    paint()}
+    paint()};
+  // Ya dio permiso antes pero se perdió el registro: se renueva en silencio
+  if(Notification.permission==='granted'){if(!on)suscribir().then(paint).catch(()=>{});return}
+  // Invitación amable: aparece unos segundos después de abrir el catálogo, solo si aún no los tiene activos
+  let vista=false;try{vista=sessionStorage.getItem('av-no')==='1'}catch(e){}
+  if(vista)return;
+  setTimeout(()=>{if(on||Notification.permission!=='default')return;
+    const n=(document.getElementById('tt').textContent||'').trim(),s=document.createElement('div');s.className='avs';
+    s.innerHTML='<div class="avc"><div class="avt">'+BELL.replace('margin-right:6px','margin-right:0')+'</div><div class="avx"><b>Entérate primero</b><span>Te avisamos cuando llegue mercancía nueva o haya ofertas'+(n?' en '+n.replace(/[<>&]/g,''):'')+'. Sin spam, y lo puedes quitar cuando quieras.</span></div><div class="avb"><button type="button" class="avy">Sí, avisarme</button><button type="button" class="avn">Ahora no</button></div></div>';
+    document.body.appendChild(s);requestAnimationFrame(()=>s.classList.add('on'));
+    const cerrar=()=>{s.classList.remove('on');setTimeout(()=>s.remove(),400)};
+    s.querySelector('.avn').onclick=()=>{try{sessionStorage.setItem('av-no','1')}catch(e){}cerrar()};
+    s.querySelector('.avy').onclick=async()=>{const y=s.querySelector('.avy');y.disabled=true;y.textContent='Activando…';
+      try{const r=await activar();paint();if(r){nt.textContent='¡Listo! Te avisaremos cuando llegue mercancía nueva u ofertas.';y.textContent='¡Listo!';setTimeout(cerrar,900);return}}catch(e){}
+      cerrar()}},3500)
 }
 if(typeof document!=='undefined'&&typeof firebase!=='undefined'){
   const t=new URLSearchParams(location.search).get('t'),st=document.getElementById('st');
