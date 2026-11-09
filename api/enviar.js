@@ -36,7 +36,7 @@ module.exports = async (req, res) => {
       (r.documents || []).forEach(d => { try { subs.push({ name: d.name, s: JSON.parse(d.fields.s.stringValue) }) } catch (e) {} });
       if (!r.nextPageToken) break; pt = r.nextPageToken;
     }
-    const payload = JSON.stringify({ t: titulo, b: texto, u: url, g: 'aviso-' + uid, l: uid });
+    const payload = JSON.stringify({ t: titulo, b: texto, u: url, g: 'aviso-' + uid, l: uid, n: String(b.tienda || '').slice(0, 40) });
     let ok = 0, fail = 0, quitados = 0;
     for (let i = 0; i < subs.length; i += 25) {
       await Promise.all(subs.slice(i, i + 25).map(async x => {
