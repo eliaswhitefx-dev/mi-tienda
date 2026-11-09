@@ -1,4 +1,4 @@
-const C='tienda-v10';
+const C='tienda-v12';
 const SHELL=['./','index.html','catalogo.html','config.js','manifest.webmanifest','icon-192.png','icon-512.png','badge-96.png'];
 const LIBS=['https://cdn.tailwindcss.com','https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js','https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js','https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js','https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js','https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js'];
@@ -26,9 +26,9 @@ self.addEventListener('fetch',e=>{const r=e.request,u=new URL(r.url);
 
 // ===== Avisos (notificaciones push) =====
 self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch(x){}
-  e.waitUntil((async()=>{let ic='icon-192.png';
-    if(d.l){try{const r=await fetch('https://firestore.googleapis.com/v1/projects/lirios-store-7cf62/databases/(default)/documents/catalogos/'+d.l+'?mask.fieldPaths=logo'),j=await r.json(),v=j&&j.fields&&j.fields.logo&&j.fields.logo.stringValue;if(v&&/^data:image\//.test(v))ic=v}catch(x){}} // logo propio de la tienda
-    return self.registration.showNotification(d.t||'Novedades',{body:d.b||'',icon:ic,badge:'badge-96.png',data:{u:d.u||'./'},tag:d.g||'aviso',renotify:true})})())});
+  e.waitUntil((async()=>{let n=d.n||'';
+    if(!n&&d.l){try{const r=await fetch('https://firestore.googleapis.com/v1/projects/lirios-store-7cf62/databases/(default)/documents/catalogos/'+d.l+'?mask.fieldPaths=tienda'),j=await r.json();n=(j&&j.fields&&j.fields.tienda&&j.fields.tienda.stringValue)||''}catch(x){}} // nombre de la tienda
+    return self.registration.showNotification(n?n+' · '+(d.t||'Novedades'):(d.t||'Novedades'),{body:d.b||'',icon:d.l?'/api/logo?t='+d.l:'icon-192.png',badge:'badge-96.png',data:{u:d.u||'./'},tag:d.g||'aviso',renotify:true})})())});
 self.addEventListener('notificationclick',e=>{e.notification.close();const u=(e.notification.data&&e.notification.data.u)||'./';
   e.waitUntil((async()=>{const cs=await clients.matchAll({type:'window',includeUncontrolled:true});
     for(const c of cs){if(c.url===u&&'focus' in c)return c.focus()}
