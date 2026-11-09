@@ -24,9 +24,10 @@ module.exports = async (req, res) => {
     const titulo = String(b.titulo || '').slice(0, 60), texto = String(b.texto || '').slice(0, 140);
     let url = String(b.url || '');
     if (!titulo) return res.status(400).json({ error: 'Falta el título' });
-    // El enlace siempre apunta al catálogo de este dueño
+    // Si el dueño puso un enlace https (ej. un post de Instagram) se usa; si no, abre su catálogo
     const base = 'https://' + (req.headers['x-forwarded-host'] || req.headers.host);
-    if (!/^https:\/\//.test(url) || new URL(url).host !== new URL(base).host) url = base + '/catalogo.html?t=' + uid;
+    try { if (new URL(url).protocol !== 'https:') url = ''; } catch (x) { url = ''; }
+    if (!url) url = base + '/catalogo.html?t=' + uid;
 
     // Lee las suscripciones (con la sesión del dueño: solo él puede)
     const H = { Authorization: 'Bearer ' + tk };
