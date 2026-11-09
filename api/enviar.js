@@ -39,7 +39,14 @@ module.exports = async (req, res) => {
     }
     // Calienta el logo en la red de Vercel para que aparezca de inmediato en el aviso
     await fetch(base + '/api/logo?t=' + uid).catch(() => {});
-    const payload = JSON.stringify({ t: titulo, b: texto, u: url, g: 'aviso-' + uid, l: uid, n: String(b.tienda || '').slice(0, 40) });
+    // Nombre de la tienda: se toma del catálogo publicado (así no depende de la versión de la app)
+    let nombre = String(b.tienda || '').slice(0, 40);
+    try {
+      const c = await fetch(DB + '/catalogos/' + uid + '?mask.fieldPaths=tienda').then(r => r.json());
+      const v = c && c.fields && c.fields.tienda && c.fields.tienda.stringValue;
+      if (v) nombre = v.slice(0, 40);
+    } catch (x) {}
+    const payload = JSON.stringify({ t: titulo, b: texto, u: url, g: 'aviso-' + uid, l: uid, n: nombre });
     let ok = 0, fail = 0, quitados = 0;
     for (let i = 0; i < subs.length; i += 25) {
       await Promise.all(subs.slice(i, i + 25).map(async x => {
