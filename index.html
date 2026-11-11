@@ -872,38 +872,52 @@ function Resumen({s,up,k}){
   const [rs,setRs]=useState(false),[gs,setGs]=useState(false),[rsT,setRsT]=useState(''),[dt,setDt]=useState(false);
   const [iv,setIv]=useState(null),[ivE,setIvE]=useState(''),[ivD,setIvD]=useState(null);
   const {c,I,merc}=k;
-  const addInv=()=>{const u=n2(iv.usd);if(u<=0)return setIvE('Escribe el monto invertido.');
-    const bsM=iv.pago==='Efectivo Bs'||iv.pago==='Pago Móvil Bs';
-    up(x=>{x.invs=x.invs||[];x.invs.unshift({id:uid(),fecha:iv.fecha,usd:u,pago:iv.pago,bs:bsM?u*tasaDe(x,iv.fecha).t:null,pagada:false,nota:iv.nota.trim()})});setIv(null);setIvE('')};
+  const PAGOS_M={'$':['Efectivo $','Crédito'],'Bs':['Efectivo Bs','Pago Móvil Bs','Crédito']};
+  const T0=n2(s.tasa);
+  const guardarInv=()=>{const m=n2(iv.monto);if(m<=0)return setIvE('Escribe el monto invertido.');
+    up(x=>{x.invs=x.invs||[];const bsM=iv.moneda==='Bs',t=Math.max(tasaDe(x,iv.fecha).t,0.0001),u=bsM?m/t:m;
+      const o={fecha:iv.fecha,usd:u,pago:iv.pago,bs:bsM?m:null,moneda:iv.moneda,tasa:bsM?t:null,nota:iv.nota.trim()};
+      if(iv.id){const y=x.invs.find(z=>z.id===iv.id);if(y)Object.assign(y,o)}else x.invs.unshift({id:uid(),pagada:false,...o})});setIv(null);setIvE('')};
+  const editarInv=x=>{const bsM=x.moneda?x.moneda==='Bs':(x.pago==='Efectivo Bs'||x.pago==='Pago Móvil Bs');setIvE('');setIv({id:x.id,fecha:x.fecha,moneda:bsM?'Bs':'$',monto:bsM?n2(x.bs!=null?x.bs:x.usd*tasaDe(s,x.fecha).t):x.usd,pago:x.pago||'Efectivo $',nota:x.nota||''})};
   const perd=sum(s.perdidas||[],'usd'),res1=k.cobrado-I.total,res2=c.vendido-perd-I.total,est=res2+merc.venta,resG=res1-k.gastos;
   const col=x=>x>=0?'text-emerald-600':'text-rose-600';
+  const abBs=s.abonos.filter(a=>a.moneda==='Bs'&&!(a.metodo==='Pago Móvil Bs'&&a.estatus!=='Confirmado')),abBsM=sum(abBs,'monto'),abBsU=sum(abBs,'usd'),abUsdU=k.abOk-abBsU;
+  const cUsd=c.efUsd+abUsdU,cBsM=c.efBsBs+c.pmBs+abBsM,cBsU=c.efBs+c.pm+abBsU;
+  const iUsd=I.efUsd+I.credPag,iBsM=I.efBsBs+I.pmBs,iBsU=I.efBs+I.pm;
+  const netUsd=cUsd-iUsd,netBsM=cBsM-iBsM,netBsU=cBsU-iBsU;
+  const esp=(d,b,u)=>html`<div class="text-xs text-slate-500 text-right">${USD(d)} en dólares + ${BS(b)} en bolívares (≈ ${USD(u)} al cambio) = ${USD(d+u)}</div>`;
   const row=(l,v,o={})=>html`<div class=${'flex justify-between gap-3 text-sm py-1 '+(o.b?'font-semibold border-t border-slate-200 dark:border-slate-700 mt-1 ':'')+(o.c||'')}><span class=${o.ind?'pl-3 text-slate-500':''}>${l}</span><span class="text-right">${v}</span></div>`;
   const sub=t=>html`<div class="text-xs uppercase tracking-wide text-slate-500 mt-3 mb-0.5">${t}</div>`;
   const ub=(u,b)=>USD(u)+' · '+BS(b),T=n2(s.tasa),ud=u=>USD(u)+' · '+BS(n2(u)*T);
   return html`<div class="space-y-4"><p class="text-xs text-slate-500">Los Bs que no se cobraron en bolívares se calculan con la tasa de hoy (${T}). Los pagos en Bs usan la tasa del día en que se hicieron.</p><div class="grid md:grid-cols-2 gap-4">
     <div class=${card}><h2 class="font-semibold">Inversión (mercancía comprada)</h2>
-      ${sub('Pagado al contado')}${row('Efectivo $',ud(I.efUsd),{ind:1})}${row('Efectivo Bs',ub(I.efBs,I.efBsBs),{ind:1})}${row('Pago móvil',ub(I.pm,I.pmBs),{ind:1})}${row('Total al contado',ud(I.efUsd+I.efBs+I.pm),{b:1})}
-      ${sub('Comprado a crédito')}${row('Por pagar',ud(I.credPend),{ind:1,c:I.credPend>0?'text-amber-600':''})}${row('Ya pagado',ud(I.credPag),{ind:1})}${row('Total a crédito',ud(I.credPend+I.credPag),{b:1})}
-      <div class="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between text-lg font-semibold"><span>Monto invertido</span><span>${ud(I.total)}</span></div>
+      ${sub('Pagado al contado')}${row('Efectivo $',USD(I.efUsd),{ind:1})}${row('Efectivo Bs',ub(I.efBs,I.efBsBs),{ind:1})}${row('Pago móvil',ub(I.pm,I.pmBs),{ind:1})}${row('Total al contado',USD(I.efUsd+I.efBs+I.pm),{b:1})}${esp(I.efUsd,iBsM,iBsU)}
+      ${sub('Comprado a crédito')}${row('Por pagar',USD(I.credPend),{ind:1,c:I.credPend>0?'text-amber-600':''})}${row('Ya pagado',USD(I.credPag),{ind:1})}${row('Total a crédito',USD(I.credPend+I.credPag),{b:1})}
+      <div class="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between text-lg font-semibold"><span>Monto invertido</span><span>${USD(I.total)}</span></div>${esp(I.efUsd+I.credPag+I.credPend,iBsM,iBsU)}
       <div class="mt-3 border-t border-slate-100 dark:border-slate-700 pt-3">
-        <p class="text-xs text-slate-500 mb-2">¿No tienes el costo prenda por prenda? Anota aquí la inversión en mercancía como un monto general (suma al total de arriba).</p>
-        ${!iv?html`<button class=${btn2} onClick=${()=>setIv({fecha:today(),usd:'',pago:'Efectivo $',nota:''})}>+ Agregar inversión general</button>`:html`<div class="grid grid-cols-2 gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 p-3">
+        <p class="text-xs text-slate-500 mb-2">¿No tienes el costo prenda por prenda? Anota aquí la inversión en mercancía como un monto general, en dólares o en bolívares (suma al total de arriba). Puedes editarla cuando quieras.</p>
+        ${!iv?html`<button class=${btn2} onClick=${()=>{setIvE('');setIv({fecha:today(),moneda:'$',monto:'',pago:'Efectivo $',nota:''})}}>+ Agregar inversión general</button>`:html`<div class="grid grid-cols-2 gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 p-3">
+          <div class="col-span-2 text-sm font-medium">${iv.id?'Editar inversión':'Nueva inversión'}</div>
           <${F} l="Fecha"><input type="date" class=${inp} value=${iv.fecha} onChange=${e=>setIv({...iv,fecha:e.target.value})}/><//>
-          <${F} l="Monto invertido ($)"><input type="number" min="0" step="any" class=${inp} value=${iv.usd} onChange=${e=>setIv({...iv,usd:e.target.value})}/><//>
-          <${F} l="Cómo se pagó"><select class=${inp} value=${iv.pago} onChange=${e=>setIv({...iv,pago:e.target.value})}>${COMPRA_PAGOS.map(y=>html`<option key=${y} value=${y}>${compraLab(y)}</option>`)}</select><//>
-          <${F} l="Nota (opcional)"><input class=${inp} value=${iv.nota} onChange=${e=>setIv({...iv,nota:e.target.value})} placeholder="Ej: Mercancía de Valencia"/><//>
+          <${F} l="Moneda"><select class=${inp} value=${iv.moneda} onChange=${e=>{const m=e.target.value;setIv({...iv,moneda:m,pago:PAGOS_M[m].includes(iv.pago)?iv.pago:PAGOS_M[m][0]})}}><option value="$">Dólares ($)</option><option value="Bs">Bolívares (Bs)</option></select><//>
+          <${F} l=${'Monto invertido ('+iv.moneda+')'}><input type="number" min="0" step="any" class=${inp} value=${iv.monto} onChange=${e=>setIv({...iv,monto:e.target.value})}/><//>
+          <${F} l="Cómo se pagó"><select class=${inp} value=${iv.pago} onChange=${e=>setIv({...iv,pago:e.target.value})}>${PAGOS_M[iv.moneda].map(y=>html`<option key=${y} value=${y}>${compraLab(y)}</option>`)}</select><//>
+          ${n2(iv.monto)>0&&html`<p class="col-span-2 text-xs text-slate-500">${iv.moneda==='Bs'?'≈ '+USD(n2(iv.monto)/Math.max(tasaDe(s,iv.fecha).t,0.0001))+' (tasa '+tasaDe(s,iv.fecha).t+' del '+iv.fecha+')':'≈ '+BS(n2(iv.monto)*T0)+' a la tasa de hoy ('+T0+')'}</p>`}
+          <div class="col-span-2"><${F} l="Nota (opcional)"><input class=${inp} value=${iv.nota} onChange=${e=>setIv({...iv,nota:e.target.value})} placeholder="Ej: Mercancía de Valencia"/><//></div>
           <div class="col-span-2"><${Msg} t=${ivE}/></div>
-          <div class="col-span-2 flex gap-2"><button class=${btn} onClick=${addInv}>Guardar inversión</button><button class=${btn2} onClick=${()=>{setIv(null);setIvE('')}}>Cancelar</button></div></div>`}
-        ${(s.invs||[]).map(x=>html`<div key=${x.id} class="flex flex-wrap items-center justify-between gap-2 text-sm py-1.5 border-t border-slate-100 dark:border-slate-700 mt-2"><span>${x.fecha} · ${compraLab(x.pago)}${x.nota?html` <span class="text-xs text-slate-500">(${x.nota})</span>`:''}</span><span class="flex items-center gap-2"><b>${USD(x.usd)}</b>${x.pago==='Crédito'&&html`<button class=${btn2+' !py-0.5 text-xs'} onClick=${()=>up(c=>{const m=(c.invs||[]).find(y=>y.id===x.id);if(m)m.pagada=!m.pagada})}>${x.pagada?'✓ Pagada':'Marcar pagada'}</button>`}
-          ${ivD===x.id?html`<span class="text-xs">¿Eliminar? <button class="text-rose-600 font-semibold" onClick=${()=>{up(c=>{c.invs=(c.invs||[]).filter(y=>y.id!==x.id)});setIvD(null)}}>Sí</button> <button onClick=${()=>setIvD(null)}>No</button></span>`:html`<button class=${btn2+' !py-0.5 text-xs'} onClick=${()=>setIvD(x.id)}>🗑️</button>`}</span></div>`)}</div></div>
+          <div class="col-span-2 flex gap-2"><button class=${btn} onClick=${guardarInv}>${iv.id?'Guardar cambios':'Guardar inversión'}</button><button class=${btn2} onClick=${()=>{setIv(null);setIvE('')}}>Cancelar</button></div></div>`}
+        ${(s.invs||[]).map(x=>{const bsM=x.moneda?x.moneda==='Bs':(x.pago==='Efectivo Bs'||x.pago==='Pago Móvil Bs');return html`<div key=${x.id} class="flex flex-wrap items-center justify-between gap-2 text-sm py-1.5 border-t border-slate-100 dark:border-slate-700 mt-2"><span>${x.fecha} · ${compraLab(x.pago)}${x.nota?html` <span class="text-xs text-slate-500">(${x.nota})</span>`:''}</span><span class="flex items-center gap-2"><b>${bsM?BS(x.bs!=null?x.bs:x.usd*tasaDe(s,x.fecha).t)+' ≈ '+USD(x.usd):USD(x.usd)}</b>${x.pago==='Crédito'&&html`<button class=${btn2+' !py-0.5 text-xs'} onClick=${()=>up(c=>{const m=(c.invs||[]).find(y=>y.id===x.id);if(m)m.pagada=!m.pagada})}>${x.pagada?'✓ Pagada':'Marcar pagada'}</button>`}
+          <button title="Editar" class=${btn2+' !py-0.5 text-xs'} onClick=${()=>editarInv(x)}>✏️</button>
+          ${ivD===x.id?html`<span class="text-xs">¿Eliminar? <button class="text-rose-600 font-semibold" onClick=${()=>{up(c=>{c.invs=(c.invs||[]).filter(y=>y.id!==x.id)});setIvD(null)}}>Sí</button> <button onClick=${()=>setIvD(null)}>No</button></span>`:html`<button class=${btn2+' !py-0.5 text-xs'} onClick=${()=>setIvD(x.id)}>🗑️</button>`}</span></div>`})}</div></div>
     <div class=${card}><h2 class="font-semibold">Ingresos</h2>
-      ${sub('Ventas al contado')}${row('Efectivo $',ud(c.efUsd),{ind:1})}${row('Efectivo Bs',ub(c.efBs,c.efBsBs),{ind:1})}${row('Pago móvil confirmado',ub(c.pm,c.pmBs),{ind:1})}
+      ${sub('Ventas al contado')}${row('Efectivo $',USD(c.efUsd),{ind:1})}${row('Efectivo Bs',ub(c.efBs,c.efBsBs),{ind:1})}${row('Pago móvil confirmado',ub(c.pm,c.pmBs),{ind:1})}
       ${c.pmPendN>0&&row('Pago móvil por confirmar ('+c.pmPendN+')',ub(c.pmPend,c.pmPendBs),{ind:1,c:'text-amber-600'})}
-      ${sub('Ventas a crédito')}${row('Vendido a crédito',ud(c.cred),{ind:1})}${row('Cuentas a crédito ya pagadas (abonos)',ud(k.abOk),{ind:1})}
+      ${sub('Ventas a crédito')}${row('Vendido a crédito',ud(c.cred),{ind:1})}${row('Cuentas a crédito ya pagadas (abonos)',abBsM>0?USD(abUsdU)+' en $ · '+BS(abBsM)+' en Bs':USD(k.abOk),{ind:1})}
       ${k.abPend>0.0001&&row('Abonos por confirmar',ud(k.abPend),{ind:1,c:'text-amber-600'})}${row('Por cobrar a clientes',ud(k.cxc),{ind:1,c:k.cxc>0?'text-sky-600':''})}
-      <div class="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700 space-y-1"><div class="flex justify-between text-lg font-semibold"><span>Total cobrado</span><span>${ud(k.cobrado)}</span></div>${row('Total vendido (incluye crédito y por confirmar)',ud(c.vendido))}</div></div>
+      <div class="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700 space-y-1"><div class="flex justify-between text-lg font-semibold"><span>Total cobrado</span><span>${USD(k.cobrado)}</span></div>${esp(cUsd,cBsM,cBsU)}${row('Total vendido (incluye crédito y por confirmar)',ud(c.vendido))}</div></div>
     <div class=${card}><h2 class="font-semibold">Resultado</h2>
-      <div class=${'flex justify-between text-lg font-semibold mt-2 '+col(res1)}><span>Cobrado − inversión</span><span>${ud(res1)}</span></div>
+      ${sub('Cobrado − invertido, por moneda')}${row('En dólares',USD(netUsd),{ind:1,c:col(netUsd)})}${row('En bolívares',BS(netBsM)+' · ≈ '+USD(netBsU),{ind:1,c:col(netBsM)})}${I.credPend>0&&row('Compras a crédito por pagar','−'+USD(I.credPend),{ind:1,c:'text-amber-600'})}
+      <div class=${'flex justify-between text-lg font-semibold mt-2 '+col(res1)}><span>Resultado final (todo junto)</span><span>${ud(res1)}</span></div>
       ${row('Vendido − inversión (con lo que te deben)',ud(res2),{c:col(res2)})}
       <p class="text-xs text-slate-500 mt-1">${res1>=0?'Ya recuperaste lo invertido: lo de arriba es ganancia.':'Aún te faltan '+ud(-res1)+' por recuperar de lo invertido.'}</p>
       ${sub('Detalle de lo vendido')}${row('Ganancia sobre lo vendido (precio − costo)',ud(c.vendido-c.costoVend),{ind:1,c:col(c.vendido-c.costoVend)})}
